@@ -6,6 +6,8 @@ struct CefAppConfig: Decodable {
     var bundleIdentifier: String?
     var displayName: String?
     var minimumSystemVersion: String?
+    /// Non-empty `NS…UsageDescription` strings copied only into the main app.
+    var privacyUsageDescriptions: [String: String]?
     /// Codesigning identity ("-" = ad-hoc). Precedence: --sign flag >
     /// cefapp.json > auto-detected identity.
     var signingIdentity: String?
@@ -41,6 +43,7 @@ struct AppBundler {
     let displayName: String
     let bundleIdentifier: String
     let minimumSystemVersion: String
+    let privacyUsageDescriptions: [String: String]
     let mainExecutable: URL          // built product binary
     let helperExecutable: URL        // built cef-helper binary
     let frameworkSource: URL         // converted framework inside .cef/dist
@@ -115,7 +118,7 @@ struct AppBundler {
     }
 
     private func mainInfoPlist() -> [String: Any] {
-        [
+        var plist: [String: Any] = [
             "CFBundleDevelopmentRegion": "en",
             "CFBundleExecutable": appName,
             "CFBundleIdentifier": bundleIdentifier,
@@ -132,6 +135,15 @@ struct AppBundler {
             // Required by CEF/Chromium on macOS.
             "LSEnvironment": ["MallocNanoZone": "0"],
         ]
+        for (key, rawValue) in privacyUsageDescriptions {
+            let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard key.hasPrefix("NS"), key.hasSuffix("UsageDescription"), !value.isEmpty else {
+                print("[cef] warning: ignoring invalid privacy usage description key '\(key)'")
+                continue
+            }
+            plist[key] = value
+        }
+        return plist
     }
 
     private func helperInfoPlist(helperName: String, bundleIDSuffix: String) -> [String: Any] {

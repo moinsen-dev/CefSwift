@@ -126,6 +126,24 @@ auto-detection via `security find-identity -v -p codesigning`. Signing with a
 real identity makes the keychain "Always Allow" grant stick across rebuilds
 (see [the safe-storage section](#the-keychain-chromium-safe-storage-prompt)).
 
+`cefapp.json` can also declare the main app's macOS privacy usage strings:
+
+```json
+{
+  "bundleIdentifier": "com.example.browser",
+  "privacyUsageDescriptions": {
+    "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth for browser device features requested by websites."
+  }
+}
+```
+
+Only non-empty keys matching `NS…UsageDescription` are accepted. They are
+written to the main app's `Info.plist`, never to helper apps, and cannot
+override identity, executable, sandbox, or other generated bundle metadata.
+Declare only capabilities the app actually exposes and describe their use
+truthfully; macOS terminates an app that touches protected APIs without the
+corresponding usage description.
+
 The pinned default lives in `CEF_VERSION.json` at the package root (the
 plugin walks up to find the root manifest when invoked from the Examples
 package, or accepts `--manifest <path>`). The pin is kept current

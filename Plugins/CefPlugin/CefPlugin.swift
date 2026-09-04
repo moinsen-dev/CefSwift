@@ -182,6 +182,7 @@ struct CefPlugin: CommandPlugin {
             displayName: displayName,
             bundleIdentifier: bundleID,
             minimumSystemVersion: appConfig?.minimumSystemVersion ?? "14.0",
+            privacyUsageDescriptions: appConfig?.privacyUsageDescriptions ?? [:],
             mainExecutable: mainExecutable,
             helperExecutable: helperExecutable,
             frameworkSource: framework,

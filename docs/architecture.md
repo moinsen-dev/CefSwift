@@ -90,8 +90,10 @@ and wrap `sendEvent:` with that flag. The principal class must be
 `CefSwiftApp.main()` exists: it installs `CEFApplication`, initializes
 `CefRuntime`, and only then enters SwiftUI's `App.main()`. The standard
 `NSApplicationMain` path is never used. `terminate:` is intercepted so
-quitting routes through browser close and `cef_quit_message_loop` instead of
-killing renderers mid-flight.
+quitting first closes every browser instead of killing renderers mid-flight.
+The handler then defers `cef_shutdown()` to the next main-queue cycle, outside
+the CEF message-pump or browser-close callback, before allowing AppKit's normal
+termination path to proceed.
 
 ## Process model
 

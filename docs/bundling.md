@@ -77,6 +77,11 @@ your target's sources, or `--bundle-id` / `--name` flags):
 | `LSMinimumSystemVersion` | `14.0` | Package floor. |
 | `NSSupportsAutomaticGraphicsSwitching` | `true` | Lets dual-GPU Macs use the integrated GPU. |
 
+Additional main-app privacy strings can be declared under
+`privacyUsageDescriptions` in `cefapp.json`. The plugin accepts only non-empty
+`NS…UsageDescription` string keys and does not copy them into helper bundles;
+see [Configuration](configuration.md#build-time-plugin-flags).
+
 Helpers:
 
 | Key | Value | Why |

@@ -6,8 +6,8 @@ import Observation
 /// CI smoke test (see .github/workflows/ci.yml).
 ///
 /// When launched as `Browser --cef-smoke-test`, opens the chrome window on a
-/// tiny `data:` page and exits as soon as the page renders:
-///   exit 0 — first load completed (the page's <title> arrived)
+/// tiny `data:` page and terminates normally as soon as the page renders:
+///   exit 0 — first load completed and the CEF shutdown lifecycle completed
 ///   exit 1 — load finished but the expected title never showed up
 ///   exit 2 — 45 s watchdog (CEF never initialized / never painted)
 @MainActor
@@ -19,6 +19,7 @@ enum SmokeTest {
     private static let smokeURL = URL(string: "data:text/html,<title>cefswift-smoke-ok</title><h1>ok</h1>")!
     private static let expectedTitle = "cefswift-smoke-ok"
     private static var shell: BrowserShell?
+    private static var didSucceed = false
 
     static func run(shell: BrowserShell) {
         self.shell = shell
@@ -49,18 +50,28 @@ enum SmokeTest {
 
     private static func check(_ shell: BrowserShell) {
         if shell.selectedTab?.title == expectedTitle {
-            print("[smoke] load completed, title matched — OK")
-            exit(0)
+            succeed()
+            return
         }
         if shell.isLoading {
             sawLoadStart = true
         } else if sawLoadStart {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                if shell.selectedTab?.title == expectedTitle { exit(0) }
+                if shell.selectedTab?.title == expectedTitle {
+                    succeed()
+                    return
+                }
                 FileHandle.standardError.write(
                     Data("[smoke] load finished but title was '\(shell.selectedTab?.title ?? "")'\n".utf8))
                 exit(1)
             }
         }
+    }
+
+    private static func succeed() {
+        guard !didSucceed else { return }
+        didSucceed = true
+        print("[smoke] load completed, title matched — terminating normally")
+        NSApp.terminate(nil)
     }
 }

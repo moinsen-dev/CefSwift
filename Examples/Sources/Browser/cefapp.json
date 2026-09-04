@@ -1,5 +1,8 @@
 {
   "bundleIdentifier": "dev.rajaniraiyn.cefswift.browser",
   "displayName": "CefSwift Browser",
-  "minimumSystemVersion": "14.0"
+  "minimumSystemVersion": "14.0",
+  "privacyUsageDescriptions": {
+    "NSBluetoothAlwaysUsageDescription": "CefSwift Browser uses Bluetooth for Chromium device features requested by websites."
+  }
 }

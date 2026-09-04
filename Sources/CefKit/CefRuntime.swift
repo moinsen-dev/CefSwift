@@ -112,6 +112,7 @@ public final class CefRuntime {
     private var settings: MappedCefSettings?
     private var browsers: [Int32: CefBrowser] = [:]
     private var isTerminationRequested = false
+    private var isTerminationFinishing = false
 
     private init() {}
 
@@ -240,6 +241,8 @@ public final class CefRuntime {
         settings = nil
         configuration = nil
         isInitialized = false
+        isTerminationRequested = false
+        isTerminationFinishing = false
     }
 
     // MARK: Helper process
@@ -401,8 +404,7 @@ public final class CefRuntime {
     func unregisterBrowser(id: Int32) {
         browsers[id] = nil
         if isTerminationRequested && browsers.isEmpty {
-            // Re-enter terminate:; with no browsers left it now proceeds.
-            NSApp.terminate(nil)
+            finishTerminationAfterCurrentCallback()
         }
     }
 
@@ -411,13 +413,25 @@ public final class CefRuntime {
     func handleTerminationRequest() -> Bool {
         guard isInitialized else { return true }
         if browsers.isEmpty {
-            shutdown()
-            return true
-        }
-        isTerminationRequested = true
-        for browser in browsers.values {
-            browser.close(force: false)
+            finishTerminationAfterCurrentCallback()
+        } else {
+            isTerminationRequested = true
+            for browser in browsers.values {
+                browser.close(force: false)
+            }
         }
         return false
+    }
+
+    private func finishTerminationAfterCurrentCallback() {
+        guard !isTerminationFinishing else { return }
+        isTerminationRequested = true
+        isTerminationFinishing = true
+        DispatchQueue.main.async {
+            self.shutdown()
+            // shutdown removes the CEF terminate handler, so this call now
+            // reaches NSApplication's normal termination path directly.
+            NSApp.terminate(nil)
+        }
     }
 }
