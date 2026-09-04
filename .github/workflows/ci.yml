@@ -102,6 +102,28 @@ jobs:
           echo "smoke test exit: $STATUS"
           exit $STATUS
 
+      # Chromium 151.0.7922.138 crashed Alloy-hosted CEF browsers on a real
+      # History API soft navigation (CEF #4234). Keep an end-to-end guard at
+      # the public browser boundary so future CEF pin changes cannot silently
+      # reintroduce that post-login SPA crash.
+      - name: Bundle Gallery for Alloy soft-navigation smoke test
+        run: |
+          swift package --package-path Examples \
+            --allow-writing-to-package-directory \
+            --allow-network-connections all \
+            cef bundle --product Gallery --configuration release --output dist
+
+      - name: Smoke test (Alloy soft navigation)
+        run: |
+          set -e
+          ./Examples/dist/Gallery.app/Contents/MacOS/Gallery \
+            --remote-debugging-port=9223 &
+          APP=$!
+          trap 'kill -9 "$APP" 2>/dev/null || true' EXIT
+          swiftc -parse-as-library Scripts/soft-navigation-smoke.swift \
+            -o /tmp/cefswift-soft-navigation-smoke
+          /tmp/cefswift-soft-navigation-smoke --port 9223
+
       # Catch generated files escaping .gitignore: after building, testing,
       # downloading, and bundling, the working tree must still be clean —
       # no modified tracked files and nothing untracked.
