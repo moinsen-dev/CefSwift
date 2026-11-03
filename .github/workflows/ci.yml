@@ -42,6 +42,11 @@ jobs:
       - name: Test
         run: swift test
 
+      # Offline recipe/import checks only. Full Chromium builds require a
+      # deliberately provisioned build Mac; never start one on ordinary CI.
+      - name: Test codec build safety and local distribution import
+        run: python3 -m unittest discover -s Scripts/tests -v
+
       # Cache the downloaded CEF tarball; the key matches the scheme used by
       # Scripts/cef-update.sh and the CefPlugin: cef-<version>-<platform>-<flavor>.
       - name: Cache CEF downloads

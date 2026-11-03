@@ -47,6 +47,7 @@ struct AppBundler {
     let mainExecutable: URL          // built product binary
     let helperExecutable: URL        // built cef-helper binary
     let frameworkSource: URL         // converted framework inside .cef/dist
+    let provenanceSource: URL?       // custom build metadata, copied before signing
     let outputDirectory: URL
     let signingIdentity: String      // codesign identity; "-" = ad-hoc
 
@@ -80,6 +81,13 @@ struct AppBundler {
             "/bin/cp", ["-R", frameworkSource.path, frameworkDest.path],
             hint: "Could not copy the CEF framework into the app bundle. Check disk space and permissions."
         )
+        // Convert only the copy: a local build artifact must remain unchanged.
+        try FrameworkLayout.convertToVersionedBundle(framework: frameworkDest)
+        if let provenanceSource {
+            let resources = contents.appendingPathComponent("Resources")
+            try fm.createDirectory(at: resources, withIntermediateDirectories: true)
+            try fm.copyItem(at: provenanceSource, to: resources.appendingPathComponent("cef-build.json"))
+        }
 
         // Five helper apps.
         var helperAppURLs: [URL] = []

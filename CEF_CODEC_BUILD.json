@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "cef": "151.3.24+g2384915+chromium-151.0.7922.174",
+  "cef_commit": "2384915b7b1f0fe5ad1107e48d80c34e86b698d7",
+  "cef_branch": "7922",
+  "chromium": "151.0.7922.174",
+  "depot_tools_commit": "94e89b10b92cc9d6e58fc8d1b6474b7d29e8a114",
+  "automate_sha256": "fe0c880fd2a91ac3ab4c82301f596295cecc1901e503507e36300a5b58578dcd",
+  "platform": "macosarm64",
+  "gn_args": {
+    "proprietary_codecs": true,
+    "ffmpeg_branding": "Chrome",
+    "is_component_build": false,
+    "is_official_build": false,
+    "symbol_level": 0,
+    "use_remoteexec": false,
+    "use_siso": false
+  }
+}

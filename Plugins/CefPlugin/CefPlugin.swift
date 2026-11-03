@@ -54,6 +54,7 @@ struct CefPlugin: CommandPlugin {
       bundle --product <Name> [--configuration debug|release] [--flavor minimal|standard]
              [--platform macosarm64|macosx64] [--output <dir>] [--bundle-id <id>]
              [--name <DisplayName>] [--manifest <path>] [--sign <identity|->]
+             [--local-distribution <directory>]
           Build <Name> and cef-helper, then assemble a runnable <Name>.app
           (framework + five helper apps + Info.plists + codesign).
           --sign: codesign identity; '-' forces ad-hoc. Default: auto-detect
@@ -61,6 +62,9 @@ struct CefPlugin: CommandPlugin {
           ad-hoc). Precedence: --sign > cefapp.json "signingIdentity" > auto.
           Default output: <packageDir>/dist/<Name>.app.
           Optional per-product overrides: cefapp.json next to the target sources.
+          --local-distribution: use an explicit custom build with cef-build.json,
+          matching version/platform and SHA256. Never downloads or updates .cef/.
+          This does not certify codecs, Widevine, VMP, or provider playback.
 
       info
           Print the pinned CEF version and the state of the .cef/ cache.
@@ -106,6 +110,7 @@ struct CefPlugin: CommandPlugin {
         let bundleIDOption = extractor.extractOption(named: "bundle-id").last
         let nameOption = extractor.extractOption(named: "name").last
         let signOption = extractor.extractOption(named: "sign").last
+        let localDistributionPath = extractor.extractOption(named: "local-distribution").last
         // Hidden flags for testing the assembler without buildable products,
         // and for forcing the CLI build fallback.
         let testExe = extractor.extractOption(named: "_test-exe").last
@@ -129,9 +134,21 @@ struct CefPlugin: CommandPlugin {
 
         // 1. CEF distribution (downloads on first use).
         let manifest = try CefManifest.resolve(context: context, explicitPath: manifestPath)
-        let downloader = Downloader(cacheRoot: cacheRoot(context: context))
-        let dist = try downloader.ensure(manifest: manifest, platform: platform, flavor: flavor)
-        let framework = downloader.frameworkURL(in: dist)
+        let framework: URL
+        let provenance: URL?
+        if let localDistributionPath {
+            let local = LocalDistribution(root: URL(fileURLWithPath: localDistributionPath,
+                                                    relativeTo: context.package.directoryURL).absoluteURL)
+            try local.validate(cef: manifest.cef, chromium: manifest.chromium, platform: platform)
+            framework = local.framework
+            provenance = local.provenance
+            print("[cef] Using local distribution: \(local.root.path) (playback/VMP not certified)")
+        } else {
+            let downloader = Downloader(cacheRoot: cacheRoot(context: context))
+            let dist = try downloader.ensure(manifest: manifest, platform: platform, flavor: flavor)
+            framework = downloader.frameworkURL(in: dist)
+            provenance = nil
+        }
 
         // 2. Build the product and the cef-helper.
         let mainExecutable: URL
@@ -186,6 +203,7 @@ struct CefPlugin: CommandPlugin {
             mainExecutable: mainExecutable,
             helperExecutable: helperExecutable,
             frameworkSource: framework,
+            provenanceSource: provenance,
             outputDirectory: outputDirectory,
             signingIdentity: signingIdentity
         )
